@@ -1,0 +1,374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<title>ESC 1956 Sorter</title>
+<script type="text/javascript">
+<!--
+//*********************************************************
+//
+// Please feel free to add to this list.
+//
+// You can change names in the list.
+// I wrote names in quotation marks, and separated them with commmas.
+// Please don't put a comma at the end though.
+//
+//*********************************************************
+var namMember = new Array(
+"<img class='flag' src='https://eurovision.tv/sites/default/files/BE_0.svg'height='25' />&nbsp;<span class='country'>Belgium</span><br />Fud Leclerc<br /><em>Messieurs les noyés de la Seine</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/BE_0.svg'height='25' />&nbsp;<span class='country'>Belgium</span><br />Mony Marc<br /><em>Le Plus beau jour de ma vie</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/FR_0.svg'height='25' />&nbsp;<span class='country'>France</span><br />Mathé Altéry<br /><em>Le Temps perdu</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/FR_0.svg'height='25' />&nbsp;<span class='country'>France</span><br />Dany Dauberson<br /><em>Il est là</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/DE_0.svg'height='25' />&nbsp;<span class='country'>Germany</span><br />Freddy Quinn<br /><em>So geht das jede Nacht</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/DE_0.svg'height='25' />&nbsp;<span class='country'>Germany</span><br />Walter Andreas Schwarz<br /><em>Im Wartesaal zum großen Glück</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/IT_0.svg'height='25' />&nbsp;<span class='country'>Italy</span><br />Franca Raimondi<br /><em>Aprite le finestre</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/IT_0.svg'height='25' />&nbsp;<span class='country'>Italy</span><br />Tonina Torrielli<br /><em>Amami se vuoi</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/LU_0.svg'height='25' />&nbsp;<span class='country'>Luxembourg</span><br />Michèle Arnaud<br /><em>Les Amants de minuit</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/LU_0.svg'height='25' />&nbsp;<span class='country'>Luxembourg</span><br />Michèle Arnaud<br /><em>Ne crois pas</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/NL_0.svg'height='25' />&nbsp;<span class='country'>Netherlands</span><br />Corry Brokken<br /><em>Voorgoed voorbij</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/NL_0.svg'height='25' />&nbsp;<span class='country'>Netherlands</span><br />Jetty Paerl<br /><em>De vogels van Holland</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/CH_0.svg'height='25' />&nbsp;<span class='country'>Switzerland</span><br />Lys Assia<br /><em>Das alte Karussell</em>",
+"<img class='flag' src='https://eurovision.tv/sites/default/files/CH_0.svg'height='25' />&nbsp;<span class='country'>Switzerland</span><br />Lys Assia<br /><em>Refrain</em>",
+);
+//*********************************************************
+
+var lstMember = new Array();
+var parent = new Array();
+var equal = new Array();
+var rec = new Array();
+var cmp1,cmp2;
+var head1,head2;
+var nrec;
+
+var numQuestion;
+var totalSize;
+var finishSize;
+var finishFlag;
+
+//The initialization of the variable+++++++++++++++++++++++++++++++++++++++++++++
+function initList(){
+	var n = 0;
+	var mid;
+	var i;
+
+	//The sequence that you should sort
+	lstMember[n] = new Array();
+	for (i=0; i<namMember.length; i++) {
+		lstMember[n][i] = i;
+	}
+	parent[n] = -1;
+	totalSize = 0;
+	n++;
+
+	for (i=0; i<lstMember.length; i++) {
+		//And element divides it in two/more than two
+		//Increase divided sequence of last in first member
+		if(lstMember[i].length>=2) {
+			mid = Math.ceil(lstMember[i].length/2);
+			lstMember[n] = new Array();
+			lstMember[n] = lstMember[i].slice(0,mid);
+			totalSize += lstMember[n].length;
+			parent[n] = i;
+			n++;
+			lstMember[n] = new Array();
+			lstMember[n] = lstMember[i].slice(mid,lstMember[i].length);
+			totalSize += lstMember[n].length;
+			parent[n] = i;
+			n++;
+		}
+	}
+
+	//Preserve this sequence
+	for (i=0; i<namMember.length; i++) {
+		rec[i] = 0;
+	}
+	nrec = 0;
+
+	//List that keeps your results
+	//Value of link initial
+	// Value of link initial
+	for (i=0; i<=namMember.length; i++) {
+		equal[i] = -1;
+	}
+
+	cmp1 = lstMember.length-2;
+	cmp2 = lstMember.length-1;
+	head1 = 0;
+	head2 = 0;
+	numQuestion = 1;
+	finishSize = 0;
+	finishFlag = 0;
+}
+
+//リストのソート+++++++++++++++++++++++++++++++++++++++++++
+//flag：比較結果
+//  -1：左を選択
+//   0：引き分け
+//   1：右を選択
+function sortList(flag){
+	var i;
+	var str;
+
+	//rec preservation
+	if (flag<0) {
+		rec[nrec] = lstMember[cmp1][head1];
+		head1++;
+		nrec++;
+		finishSize++;
+		while (equal[rec[nrec-1]]!=-1) {
+			rec[nrec] = lstMember[cmp1][head1];
+			head1++;
+			nrec++;
+			finishSize++;
+		}
+	}
+	else if (flag>0) {
+		rec[nrec] = lstMember[cmp2][head2];
+		head2++;
+		nrec++;
+		finishSize++;
+		while (equal[rec[nrec-1]]!=-1) {
+			rec[nrec] = lstMember[cmp2][head2];
+			head2++;
+			nrec++;
+			finishSize++;
+		}
+	}
+	else {
+		rec[nrec] = lstMember[cmp1][head1];
+		head1++;
+		nrec++;
+		finishSize++;
+		while (equal[rec[nrec-1]]!=-1) {
+			rec[nrec] = lstMember[cmp1][head1];
+			head1++;
+			nrec++;
+			finishSize++;
+		}
+		equal[rec[nrec-1]] = lstMember[cmp2][head2];
+		rec[nrec] = lstMember[cmp2][head2];
+		head2++;
+		nrec++;
+		finishSize++;
+		while (equal[rec[nrec-1]]!=-1) {
+			rec[nrec] = lstMember[cmp2][head2];
+			head2++;
+			nrec++;
+			finishSize++;
+		}
+	}
+
+	//Processing after finishing with one list
+	if (head1<lstMember[cmp1].length && head2==lstMember[cmp2].length) {
+		//List the remainder of cmp2 copies, list cmp1 copies when finished scanning
+		while (head1<lstMember[cmp1].length){
+			rec[nrec] = lstMember[cmp1][head1];
+			head1++;
+			nrec++;
+			finishSize++;
+		}
+	}
+	else if (head1==lstMember[cmp1].length && head2<lstMember[cmp2].length) {
+		//List the remainder of cmp1 copies, list cmp2 copies when finished scanning
+		while (head2<lstMember[cmp2].length){
+			rec[nrec] = lstMember[cmp2][head2];
+			head2++;
+			nrec++;
+			finishSize++;
+		}
+	}
+
+	//When it arrives at the end of both lists
+	//Update a pro list
+	if (head1==lstMember[cmp1].length && head2==lstMember[cmp2].length) {
+		for (i=0; i<lstMember[cmp1].length+lstMember[cmp2].length; i++) {
+			lstMember[parent[cmp1]][i] = rec[i];
+		}
+		lstMember.pop();
+		lstMember.pop();
+		cmp1 = cmp1-2;
+		cmp2 = cmp2-2;
+		head1 = 0;
+		head2 = 0;
+
+		//Initialize the rec before performing the new comparison
+		if (head1==0 && head2==0) {
+			for (i=0; i<namMember.length; i++) {
+				rec[i] = 0;
+			}
+			nrec = 0;
+		}
+	}
+
+	if (cmp1<0) {
+		str = "Battle No."+(numQuestion-1)+"<br>"+Math.floor(finishSize*100/totalSize)+"% sorted.";
+		document.getElementById("battleNumber").innerHTML = str;
+
+		showResult();
+		finishFlag = 1;
+	}
+	else {
+		showImage();
+	}
+}
+
+//The results+++++++++++++++++++++++++++++++++++++++++++++++
+//&#38918;&#20301;=Rank/Grade/Position/Standing/Status
+//&#21517;&#21069;=Identification term
+function showResult() {
+	var ranking = 1;
+	var sameRank = 1;
+	var str = "";
+	var i;
+
+	str += "<table style=\"width:230px; font-size:12px; font-family: tahoma, verdana, sans-serif; line-height:120%; margin-left:auto; margin-right:auto; border:1px solid #000; border-collapse:collapse\" align=\"center\">";
+	str += "<tr><td style=\"color:#ffffff; background-color:#000; text-align:center;\">#<\/td><td style=\"color:#ffffff; background-color:#000; text-align:center;\">Entry<\/td><\/tr>";
+
+	for (i=0; i<namMember.length; i++) {
+		str += "<tr><td style=\"border:1px solid #000; text-align:right; padding-right:5px;\">"+ranking+"<\/td><td style=\"border:1px solid #000; padding-left:5px;\">"+namMember[lstMember[0][i]]+"<\/td><\/tr>";
+		if (i<namMember.length-1) {
+			if (equal[lstMember[0][i]]==lstMember[0][i+1]) {
+				sameRank++;
+			} else {
+				ranking += sameRank;
+				sameRank = 1;
+			}
+		}
+	}
+	str += "<\/table>";
+
+	document.getElementById("resultField").innerHTML = str;
+}
+
+//Indicates two elements to compare+++++++++++++++++++++++++++++++++++
+function showImage() {
+	var str0 = "Duel No. "+numQuestion+"<br>"+Math.floor(finishSize*100/totalSize)+"% sorted.";
+	var str1 = ""+toNameFace(lstMember[cmp1][head1]);
+	var str2 = ""+toNameFace(lstMember[cmp2][head2]);
+
+	document.getElementById("battleNumber").innerHTML = str0;
+	document.getElementById("leftField").innerHTML = str1;
+	document.getElementById("rightField").innerHTML = str2;
+
+	numQuestion++;
+}
+
+//Convert numeric value into a name (emoticon)+++++++++++++++++++++++++++++++
+function toNameFace(n){
+	var str = namMember[n];
+
+	//Exclude the following comment when adding an emoticon
+	//Warning not to contradict an indext of namMember
+	/*
+	str += "<br>────<br>";
+	switch(n) {
+		//case -1 はサンプルなので削除すること
+		case -1: str+="（ ´∀｀）";break;
+		default: str+=""+n;
+	}
+	*/
+	return str;
+}
+//-->
+</script>
+<style type="text/css">
+<!--
+/**********************************************************
+
+ When changing the style of the list, please edit here. 
+
+**********************************************************/
+#mainTable{
+	font-size: 14px;
+	font-family: tahoma, verdana, sans-serif;
+	text-align: center;
+	vertical-align: middle;
+	width: 575px;
+	margin-left: auto;
+	margin-right: auto;
+	border-collapse: separate;
+	border-spacing: 10px 5px;
+}
+#leftField{
+	width: 210px;
+	height: 150px;
+	border: 1px solid #000;
+}
+#rightField{
+	width: 210px;
+	height: 150px;
+	border: 1px solid #000;
+}
+.middleField{
+	width: 125px;
+	height: 70px;
+	border: 1px solid #000;
+}
+
+#leftField:hover, #rightField:hover, .middleField:hover {
+	background-color: #F6F4F0;
+	cursor:pointer;
+}
+
+.flag{
+	vertical-align: middle;
+}
+
+.country{
+	vertical-align: middle;
+	font-weight: bold;
+}
+
+//-->
+</style>
+</head>
+
+<body>
+<table id="mainTable" align="center">
+	<tr>
+		<td colspan=3><img src="https://eurovision.tv/sites/default/files/styles/sidebar/public/1956.png" style=" display: block; margin-left: auto; margin-right: auto; width: 350px;"/><br /></td>
+	</tr>
+	<tr>
+		<td colspan=3><p>ESC 1956 Favorites Sorter.</p>
+
+<p><b>Instructions:</b> You are given two countries and their entries. Click which one you like better, and go on until the end..</p>
+
+<p>Original code: <a href="http://www.bathkame.com/johnnys.html">bathkame</a> and <a href="https://esc.gerbear.com/">Mr. Gerbear</a>.</p>
+
+<hr /></td>
+	</tr>
+	<tr>
+		<td id="battleNumber" colspan="3" style="padding-bottom: 10px;">
+			&nbsp;
+		</td>
+	</tr>
+	<tr>
+		<td id="leftField" onClick="if(finishFlag==0)sortList(-1);" rowspan="2">
+			&nbsp;
+		</td>
+		<!-- <td class="middleField" onClick="if(finishFlag==0)sortList(0);">
+			I like both
+		</td> -->
+		<td id="rightField" onClick="if(finishFlag==0)sortList(1);" rowspan="2">
+			&nbsp;
+		</td>
+	</tr>
+	<!-- <tr>
+		<td class="middleField" onClick="if(finishFlag==0)sortList(0);">
+			No opinion
+		</td>
+	</tr> -->
+</table><br><br>
+<div id="resultField" style="text-align:center;">
+
+<script type="text/javascript">
+<!--
+	initList();
+	showImage();
+//-->
+</script>
+
+</body>
+</html>
